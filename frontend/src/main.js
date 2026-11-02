@@ -14,6 +14,8 @@ const ui = {
   recipient: $('#recipient'), amount: $('#amount'), feedback: $('#feedback'),
   wallet: $('#walletStatus'), network: $('#networkStatus'), chain: $('#chainId'),
   count: $('#transactionCount'), rows: $('#eventRows'), hint: $('#transactionHint'),
+  windowEvents: $('#windowEvents'), uniqueSenders: $('#uniqueSenders'), recordedAmount: $('#recordedAmount'),
+  search: $('#historySearch'), historyCount: $('#historyCount'), export: $('#exportButton'),
 };
 
 let provider;
@@ -22,6 +24,7 @@ let chainId;
 let contractAddress;
 let busy = false;
 let localMode = false;
+let loadedEvents = [];
 
 const localProvider = {
   async request({ method, params = [] }) {
@@ -59,7 +62,15 @@ function renderConnection() {
 }
 function clearContract() {
   contractAddress = undefined;
+  loadedEvents = [];
   ui.count.textContent = '—';
+  ui.windowEvents.textContent = '—';
+  ui.uniqueSenders.textContent = '—';
+  ui.recordedAmount.textContent = '—';
+  ui.search.value = '';
+  ui.search.disabled = true;
+  ui.export.disabled = true;
+  ui.historyCount.textContent = 'Показаны последние 50 записей';
   ui.rows.innerHTML = '<tr><td colspan="5" class="empty-state">Подключите кошелёк и контракт, чтобы увидеть события.</td></tr>';
 }
 function setBusy(value) {
@@ -111,33 +122,52 @@ async function loadContract() {
 async function loadEvents() {
   if (!contractAddress) throw new Error('Сначала загрузите контракт.');
   const latest = BigInt(await rpc('eth_blockNumber'));
-  const from = latest > 5000n ? latest - 5000n : 0n;
+  const from = latest >= 5000n ? latest - 4999n : 0n;
   const logs = await rpc('eth_getLogs', [{
     address: contractAddress,
     topics: [toEventSelector(event)],
     fromBlock: `0x${from.toString(16)}`,
     toBlock: 'latest',
   }]);
-  const entries = logs.slice(-50).reverse().map((log) => ({
+  loadedEvents = logs.reverse().map((log) => ({
     ...decodeEventLog({ abi, data: log.data, topics: log.topics }),
     transactionHash: log.transactionHash,
   }));
+  ui.windowEvents.textContent = new Intl.NumberFormat('ru-RU').format(loadedEvents.length);
+  ui.uniqueSenders.textContent = new Intl.NumberFormat('ru-RU').format(new Set(loadedEvents.map((entry) => entry.args.sender.toLowerCase())).size);
+  ui.recordedAmount.textContent = new Intl.NumberFormat('ru-RU').format(loadedEvents.reduce((sum, entry) => sum + entry.args.amount, 0n));
+  ui.search.disabled = false;
+  renderEvents();
+}
+function matchingEvents() {
+  const query = ui.search.value.trim().toLowerCase();
+  return loadedEvents.filter(({ args, transactionHash }) =>
+    [args.sender, args.recipient, transactionHash].some((value) => value.toLowerCase().includes(query)));
+}
+function renderEvents() {
+  const matches = matchingEvents();
+  const entries = matches.slice(0, 50);
+  ui.historyCount.textContent = `Показано ${entries.length} из ${matches.length} совпадений · всего ${loadedEvents.length} событий`;
+  ui.export.disabled = matches.length === 0;
   ui.rows.replaceChildren();
   if (!entries.length) {
     const row = ui.rows.insertRow();
     const cell = row.insertCell();
     cell.colSpan = 5;
     cell.className = 'empty-state';
-    cell.textContent = 'В последних 5 000 блоках событий нет.';
+    cell.textContent = loadedEvents.length ? 'Совпадений не найдено.' : 'В последних 5 000 блоках событий нет.';
     return;
   }
   for (const entry of entries) {
     const row = ui.rows.insertRow();
     const { sender, recipient, amount, timestamp } = entry.args;
-    for (const value of [short(sender), short(recipient), amount.toString(), new Date(Number(timestamp) * 1000).toLocaleString('ru-RU')]) {
+    for (const [value, title] of [
+      [short(sender), sender], [short(recipient), recipient], [amount.toString(), ''],
+      [new Date(Number(timestamp) * 1000).toLocaleString('ru-RU'), ''],
+    ]) {
       const cell = row.insertCell();
       cell.textContent = value;
-      if (value.includes('…')) cell.title = value === short(sender) ? sender : recipient;
+      if (title) cell.title = title;
     }
     const cell = row.insertCell();
     const code = document.createElement('code');
@@ -145,6 +175,20 @@ async function loadEvents() {
     code.title = entry.transactionHash;
     cell.append(code);
   }
+}
+function exportEvents() {
+  const rows = matchingEvents().map(({ args, transactionHash }) => [
+    args.sender, args.recipient, args.amount.toString(),
+    new Date(Number(args.timestamp) * 1000).toISOString(), transactionHash,
+  ].join(','));
+  if (!rows.length) return;
+  const csv = ['sender,recipient,amount,block_time_utc,transaction_hash', ...rows].join('\r\n');
+  const url = URL.createObjectURL(new Blob(['\ufeff', csv], { type: 'text/csv;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `chainguard-events-${chainId}.csv`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 async function recordTransfer() {
   if (!contractAddress) throw new Error('Сначала загрузите контракт.');
@@ -154,6 +198,10 @@ async function recordTransfer() {
   const rawAmount = ui.amount.value.trim();
   if (!isAddress(recipient) || /^0x0{40}$/i.test(recipient)) throw new Error('Введите ненулевой адрес получателя.');
   if (!/^[0-9]+$/.test(rawAmount) || BigInt(rawAmount) === 0n) throw new Error('Сумма должна быть положительным целым числом.');
+  if (Number.parseInt(await rpc('eth_chainId'), 16) !== 31337) throw new Error('Сеть изменилась. Переключитесь обратно на Anvil.');
+  if (!(await rpc('eth_accounts')).some((current) => current.toLowerCase() === account.toLowerCase())) {
+    throw new Error('Аккаунт изменился. Подключите его заново.');
+  }
   const data = encodeFunctionData({ abi, functionName: 'recordTransfer', args: [recipient, BigInt(rawAmount)] });
   const hash = await rpc('eth_sendTransaction', [{ from: account, to: contractAddress, data }]);
   message(`Транзакция отправлена: ${short(hash)}. Ожидаем подтверждения…`);
@@ -177,8 +225,13 @@ async function run(action) {
 }
 
 ui.connect.addEventListener('click', () => run(connectWallet));
+ui.address.addEventListener('input', () => {
+  if (contractAddress && ui.address.value.trim().toLowerCase() !== contractAddress.toLowerCase()) clearContract();
+});
 ui.load.addEventListener('click', () => run(loadContract));
 ui.refresh.addEventListener('click', () => run(async () => { await loadContract(); message('Данные обновлены.'); }));
+ui.search.addEventListener('input', renderEvents);
+ui.export.addEventListener('click', exportEvents);
 ui.form.addEventListener('submit', (event) => { event.preventDefault(); run(recordTransfer); });
 if (window.ethereum) {
   provider = window.ethereum;

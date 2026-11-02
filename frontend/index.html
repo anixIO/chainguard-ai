@@ -37,6 +37,12 @@
           <p><strong>Это журнал записей, а не платёжный сервис.</strong> Контракт не переводит и не хранит ETH или токены. Событие подтверждает вызов функции, но не фактический перевод средств.</p>
         </section>
 
+        <section class="metrics" aria-label="Показатели за последние 5 000 блоков">
+          <div class="metric"><span>Событий в окне</span><strong id="windowEvents">—</strong><small>последние 5 000 блоков</small></div>
+          <div class="metric"><span>Уникальных отправителей</span><strong id="uniqueSenders">—</strong><small>по загруженным событиям</small></div>
+          <div class="metric"><span>Сумма записей</span><strong id="recordedAmount">—</strong><small>без единицы измерения</small></div>
+        </section>
+
         <section class="dashboard" aria-label="Панель управления">
           <div class="panel configuration">
             <div class="panel-heading"><span>02 / КОНТРАКТ</span><span class="panel-accent">CONFIG</span></div>
@@ -71,9 +77,17 @@
         <section class="history panel" aria-labelledby="historyTitle">
           <div class="history-head">
             <div><div class="panel-heading"><span>04 / СОБЫТИЯ</span><span class="panel-accent">READ</span></div><h2 id="historyTitle">История записей</h2></div>
-            <button id="refreshButton" class="button button-small" type="button">Обновить ↻</button>
+            <div class="history-actions">
+              <button id="refreshButton" class="button button-small" type="button">Обновить ↻</button>
+              <button id="exportButton" class="button button-small" type="button" disabled>Скачать CSV ↓</button>
+            </div>
           </div>
-          <p class="muted">Последние 5 000 блоков выбранной сети. Для более ранних событий нужен индексатор блокчейна.</p>
+          <p class="muted">Последние 5 000 блоков локальной сети. Для более ранних событий нужен индексатор блокчейна.</p>
+          <div class="history-filter">
+            <label for="historySearch">Поиск по адресу или хэшу</label>
+            <input id="historySearch" type="search" autocomplete="off" placeholder="0x…" disabled />
+            <span id="historyCount">Показаны последние 50 записей</span>
+          </div>
           <div class="table-wrap">
             <table>
               <thead><tr><th>Отправитель</th><th>Получатель</th><th>Сумма</th><th>Время блока</th><th>Транзакция</th></tr></thead>

@@ -80,4 +80,16 @@ h1{font-size:56px}
 .footer{flex-direction:column}
 .notice{padding:14px}
 }
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:20px}
+.metric{display:flex;flex-direction:column;gap:9px;min-height:133px;padding:21px 25px;border:1px solid #294146;border-radius:14px;background:#112126}
+.metric span,.metric small{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.07em;color:#83a8a2}
+.metric strong{font-size:29px;line-height:1.1;letter-spacing:-.05em;color:#dcf5e2;overflow-wrap:anywhere}
+.metric small{letter-spacing:0;color:#648581}
+.history-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.history-filter{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.history-filter label{margin:0;white-space:nowrap}
+.history-filter input{width:min(330px,100%)}
+.history-filter span{margin-left:auto;color:#719392;font-family:'DM Mono',monospace;font-size:10px}
+@media(max-width:850px){.metrics{gap:10px}.metric{padding:17px}}
+@media(max-width:560px){.metrics{grid-template-columns:1fr}.history-head{align-items:flex-start;flex-direction:column}.history-actions{justify-content:flex-start}.history-filter input{width:100%}.history-filter span{margin-left:0}}
 
