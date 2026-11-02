@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#091318" />
+    <meta name="description" content="ChainGuard AI — интерфейс для записи и просмотра событий TransferVault в блокчейне." />
+    <title>ChainGuard AI — журнал переводов</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar shell">
+        <a class="brand" href="#top" aria-label="ChainGuard AI — главная">
+          <span class="brand-mark" aria-hidden="true">◇</span>
+          <span>ChainGuard <b>AI</b></span>
+        </a>
+        <span class="topbar-note">ПРОТОТИП · BLOCKCHAIN EVENT LOG</span>
+        <button id="connectButton" class="button button-outline" type="button">Подключить кошелёк</button>
+      </header>
+
+      <main id="top" class="shell">
+        <section class="hero">
+          <div>
+            <div class="eyebrow"><span class="live-dot"></span> ON-CHAIN JOURNAL / v0.1</div>
+            <h1>Каждая запись.<br /><em>На виду.</em></h1>
+            <p class="hero-copy">Записывайте сведения о переводах в блокчейн и просматривайте историю событий контракта TransferVault в одном месте.</p>
+          </div>
+          <div class="hero-aside">
+            <span class="aside-label">01 / ПОДКЛЮЧЕНИЕ</span>
+            <strong id="walletStatus">Кошелёк не подключён</strong>
+            <span id="networkStatus">Выберите кошелёк, чтобы начать работу</span>
+          </div>
+        </section>
+
+        <section class="notice" role="note">
+          <span class="notice-icon" aria-hidden="true">!</span>
+          <p><strong>Это журнал записей, а не платёжный сервис.</strong> Контракт не переводит и не хранит ETH или токены. Событие подтверждает вызов функции, но не фактический перевод средств.</p>
+        </section>
+
+        <section class="dashboard" aria-label="Панель управления">
+          <div class="panel configuration">
+            <div class="panel-heading"><span>02 / КОНТРАКТ</span><span class="panel-accent">CONFIG</span></div>
+            <h2>Подключите контракт</h2>
+            <p class="muted">Введите адрес TransferVault, развёрнутого в сети вашего кошелька. Адрес сохраняется только в этом браузере для выбранной сети.</p>
+            <label for="contractAddress">Адрес контракта</label>
+            <div class="input-row">
+              <input id="contractAddress" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="0x…" />
+              <button id="loadButton" class="button button-primary" type="button">Загрузить</button>
+            </div>
+            <div class="contract-meta">
+              <div><span>Сеть</span><strong id="chainId">—</strong></div>
+              <div><span>Всего записей</span><strong id="transactionCount">—</strong></div>
+            </div>
+          </div>
+
+          <div class="panel form-panel">
+            <div class="panel-heading"><span>03 / НОВАЯ ЗАПИСЬ</span><span class="panel-accent">WRITE</span></div>
+            <h2>Записать событие</h2>
+            <p id="transactionHint" class="muted">Транзакция вызовет <code>recordTransfer</code> и потребует подтверждения в кошельке и оплаты газа.</p>
+            <form id="recordForm">
+              <label for="recipient">Адрес получателя</label>
+              <input id="recipient" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="0x…" required />
+              <label for="amount">Сумма записи</label>
+              <input id="amount" type="text" inputmode="decimal" autocomplete="off" placeholder="Например, 100" required />
+              <p class="field-hint">Целое число без единицы измерения: контракт не хранит название токена или валюты.</p>
+              <button id="recordButton" class="button button-primary full-width" type="submit">Создать запись <span aria-hidden="true">↗</span></button>
+            </form>
+          </div>
+        </section>
+
+        <section class="history panel" aria-labelledby="historyTitle">
+          <div class="history-head">
+            <div><div class="panel-heading"><span>04 / СОБЫТИЯ</span><span class="panel-accent">READ</span></div><h2 id="historyTitle">История записей</h2></div>
+            <button id="refreshButton" class="button button-small" type="button">Обновить ↻</button>
+          </div>
+          <p class="muted">Последние 5 000 блоков выбранной сети. Для более ранних событий нужен индексатор блокчейна.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Отправитель</th><th>Получатель</th><th>Сумма</th><th>Время блока</th><th>Транзакция</th></tr></thead>
+              <tbody id="eventRows"><tr><td colspan="5" class="empty-state">Подключите кошелёк и контракт, чтобы увидеть события.</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+
+        <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
+      </main>
+      <footer class="footer shell"><span>CHAIN­GUARD AI / TRANSFERVAULT</span><span>Сведения из выбранной сети кошелька</span></footer>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
